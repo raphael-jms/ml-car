@@ -1,0 +1,65 @@
+{
+    "Driver AI": {
+        "checkpoints": [
+            {
+                "steps": 2999937,
+                "file_path": "results/Racing4/Driver AI/Driver AI-2999937.onnx",
+                "reward": 27.226491077803075,
+                "creation_time": 1753030532.3046408,
+                "auxillary_file_paths": [
+                    "results/Racing4/Driver AI/Driver AI-2999937.pt"
+                ]
+            },
+            {
+                "steps": 3499869,
+                "file_path": "results/Racing4/Driver AI/Driver AI-3499869.onnx",
+                "reward": 25.960852765733268,
+                "creation_time": 1753032049.7603583,
+                "auxillary_file_paths": [
+                    "results/Racing4/Driver AI/Driver AI-3499869.pt"
+                ]
+            },
+            {
+                "steps": 3999582,
+                "file_path": "results/Racing4/Driver AI/Driver AI-3999582.onnx",
+                "reward": 24.12981782356898,
+                "creation_time": 1753033447.43022,
+                "auxillary_file_paths": [
+                    "results/Racing4/Driver AI/Driver AI-3999582.pt"
+                ]
+            },
+            {
+                "steps": 4499991,
+                "file_path": "results/Racing4/Driver AI/Driver AI-4499991.onnx",
+                "reward": 24.98853268565201,
+                "creation_time": 1753034764.9495802,
+                "auxillary_file_paths": [
+                    "results/Racing4/Driver AI/Driver AI-4499991.pt"
+                ]
+            },
+            {
+                "steps": 4781284,
+                "file_path": "results/Racing4/Driver AI/Driver AI-4781284.onnx",
+                "reward": 33.199956933657326,
+                "creation_time": 1753035527.9674537,
+                "auxillary_file_paths": [
+                    "results/Racing4/Driver AI/Driver AI-4781284.pt"
+                ]
+            }
+        ],
+        "final_checkpoint": {
+            "steps": 4781284,
+            "file_path": "results/Racing4/Driver AI.onnx",
+            "reward": 33.199956933657326,
+            "creation_time": 1753035527.9674537,
+            "auxillary_file_paths": [
+                "results/Racing4/Driver AI/Driver AI-4781284.pt"
+            ]
+        }
+    },
+    "metadata": {
+        "stats_format_version": "0.3.0",
+        "mlagents_version": "0.30.0",
+        "torch_version": "1.8.1+cu102"
+    }
+}

@@ -10,11 +10,12 @@ using UnityStandardAssets.CrossPlatformInput;
 namespace UnityStandardAssets.Vehicles.Car
 {
     [RequireComponent(typeof(CarController))]
-    public class DriverAI : Agent
+    public class DriverAIEvaluation : Agent
     {
         // Learning environment setup
         [SerializeField] private CarController m_Car;
         [SerializeField] private Rigidbody rb;
+        [SerializeField] private TerrainManager terrain_manager;
 
         // ranges for random initialization
         private (float Min, float Max) xrange = (-5.0f, 5.0f); // position
@@ -53,31 +54,64 @@ namespace UnityStandardAssets.Vehicles.Car
             decisions_since_last = 0;
             trajectory.Clear(); 
 
-            int breaker = 0;
-            while(trajectory.Count < 6) {
-                if (breaker == 100) {break;}
-                trajectory = TupleToVector(traj_gen.GenerateTrajectory());
-                breaker++;
-            }
+            // get trajectory
+            trajectory = GetTrajectory();
+            AStarPathfinder.CreateColliders(trajectory);
             trajectory_initial_length = trajectory.Count;
 
-            transform.localPosition = trajectory[0];
-            rb.velocity = new Vector3(0f, 0f, 0f);
-            transform.localRotation = Quaternion.LookRotation(trajectory[1] - trajectory[0]);
-            rb.angularVelocity = new Vector3(0, 0, 0);
-
-            // Create cubes
-            traj_gen.CreateCorridorWalls(transform.parent);
-            traj_gen.CreateColliders(transform.parent);
-
-            // Debug.LogFormat("Reward at start: {0}", GetCumulativeReward());
-            last_distance = (transform.localPosition - trajectory[0]).magnitude;
+            last_distance = (transform.position - trajectory[0]).magnitude;
 
             nextTargets.Clear();
             for (int i = 0; i < numNextTargets; i++)
             {
                 AddNextTargetIfExists();
             }
+        }
+
+        private List<Vector3> GetTrajectory()
+        {
+            var goal_pos = terrain_manager.myInfo.goal_pos;
+            var start = transform.position;
+            var traversability = terrain_manager.myInfo.traversability;
+
+            float x_low = terrain_manager.myInfo.x_low;
+            float x_high = terrain_manager.myInfo.x_high;
+            float z_low = terrain_manager.myInfo.z_low;
+            float z_high = terrain_manager.myInfo.z_high;
+            int x_N = terrain_manager.myInfo.x_N;
+            int z_N = terrain_manager.myInfo.z_N;
+
+            float grid_size_x = (float)(x_high - x_low) / x_N;
+            float grid_size_z = (float)(z_high - z_low) / z_N;
+
+            int start_x = Mathf.RoundToInt((start.x - x_low) / grid_size_x);
+            int start_z = Mathf.RoundToInt((start.z - z_low) / grid_size_z);
+            int goal_x = Mathf.RoundToInt((goal_pos.x - x_low) / grid_size_x);
+            int goal_z = Mathf.RoundToInt((goal_pos.z - z_low) / grid_size_z);
+
+            Debug.LogFormat("start: {0}, start idx: {1}, {2}, goal: {3}, goal idx {4}, {5}", start, start_x, start_z, goal_pos, goal_x, goal_z);
+            Debug.LogFormat("array with {0}, {1}", traversability.GetLength(0), traversability.GetLength(1));
+
+            var whole_path = AStarPathfinder.FindPath(traversability, start_x, start_z, goal_x, goal_z);
+            var traj = whole_path.WorldPath;
+            traj.RemoveAt(traj.Count - 1); // dirty fix, should better fix A Star end instead
+            traj.Add((goal_pos+new Vector3(5f, 0f, 5f)+traj.Last())/2f);
+            traj.Add(goal_pos);
+
+            // traj.Insert(0, new Vector3(start_x * 10f, 0f, start_z * 10f));
+
+            Vector3 offset = traj[0] - transform.position;
+            for(int i = 0; i < traj.Count - 1; i++)
+            {
+                traj[i] -= offset;
+                traj[i] += new Vector3(5f, 0, 5f);
+            }
+
+            Debug.Log(string.Join(", ", traj));
+
+            AStarPathfinder.Plot(whole_path);
+
+            return traj;
         }
 
         private void AddNextTargetIfExists()
@@ -144,18 +178,20 @@ namespace UnityStandardAssets.Vehicles.Car
             List<float> n_tars = new List<float>();
             foreach (var tar in nextTargets)
             {
-                var t = transform.InverseTransformDirection(tar - transform.localPosition);
+                var t = transform.InverseTransformDirection(tar - transform.position);
                 sensor.AddObservation( Normalize( t.x, 2.0f*xrange.Min, 2.0f*xrange.Max));
                 sensor.AddObservation( Normalize( t.z, 2.0f*yrange.Min, 2.0f*yrange.Max));
                 n_tars.Add(Normalize( t.x, 2.0f*xrange.Min, 2.0f*xrange.Max));
                 n_tars.Add(Normalize( t.z, 2.0f*yrange.Min, 2.0f*yrange.Max));
             }
 
+            Debug.LogFormat("car pos {0} - target pos {1} - t {2} - ntars {3}, {4}", transform.position, nextTargets[0], transform.InverseTransformDirection(nextTargets[0] - transform.position), n_tars[0], n_tars[1]);
+
             // Debug.LogFormat("{0} == {1}, {2}, == {3}", string.Join(", ", measurements),
             //                                            Normalize( localVelocity.x, 2.0f*xvel.Min, 2.0f*xvel.Max), 
             //                                            Normalize( localVelocity.z, 2.0f*yvel.Min, 2.0f*yvel.Max), 
             //                                            string.Join(", ", n_tars) );
-            
+
             decision_counter++;
             decisions_since_last++;
         }
@@ -169,13 +205,13 @@ namespace UnityStandardAssets.Vehicles.Car
             m_Car.Move(steering,  accellerationInput, accellerationInput, handbrake);
 
             // Reward going to the goal
-            float current_distance = (transform.localPosition - nextTargets[0]).magnitude;
+            float current_distance = (transform.position - nextTargets[0]).magnitude;
             AddReward(0.005f * (current_distance - last_distance));
             last_distance = current_distance;
 
             if (decision_counter > 600) {
-                AddReward(-1.0f);
-                // Debug.LogFormat("Episode ended after {0} steps with reward {1}", decision_counter, GetCumulativeReward());
+                // AddReward(-0.3f);
+                Debug.LogFormat("Episode ended after {0} steps with reward {1}", decision_counter, GetCumulativeReward());
                 EndEpisode();
             }
 

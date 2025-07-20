@@ -247,6 +247,8 @@ public class GridTrajectoryGenerator
 
         foreach (var (x, y) in potentialWalls)
         {
+            // flip coin: create or don't create wall
+            if (random.NextDouble() < 0.5f) {continue;}
             GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
             cube.transform.SetParent(cubeParent.transform);
             cube.transform.localPosition = new Vector3(10f * x, 5f, 10f * y);
@@ -272,28 +274,6 @@ public class GridTrajectoryGenerator
         cube.GetComponent<Renderer>().material = material;
     }
 
-    // public void CreateColliders(Transform parent = null)
-    // {
-    //     GameObject triggerParent = new GameObject("Triggers");
-    //     if (parent != null)
-    //         triggerParent.transform.SetParent(parent);
-    //         triggerParent.transform.localPosition = Vector3.zero;
-
-    //     var triggerSize = new Vector3(9f,1f,9f);
-    //     LayerMask goalMarker = LayerMask.NameToLayer("Trigger");
-
-    //     foreach(var pos in physical_trajectory)
-    //     {
-    //         GameObject triggerObj = new GameObject("BoxTrigger");
-    //         triggerObj.transform.SetParent(triggerParent.transform);
-    //         var position = new Vector3(pos.x, 1f, pos.y);
-    //         triggerObj.transform.localPosition = position;
-    //         Collider collider = CreateTrigger(position, triggerSize, TriggerShape.Box, onEnter, null, null, -1, null, null, "triggerCollider");
-    //         collider.isTrigger = true;
-    //         CollisionDetector detector = triggerObj.AddComponent<CollisionDetector>();
-    //         detector.detectionLayers = goalMarker;
-    //     }
-    // }
     public void CreateColliders(Transform parent = null)
     {
         if (lastTriggerParent != null)
@@ -330,16 +310,3 @@ public class GridTrajectoryGenerator
         }
     }
 }
-
-// public class CreateTrajectory : MonoBehaviour
-// {
-//     void Start()
-//     {
-//         var generator = new GridTrajectoryGenerator(10, 10);
-//         var traj = generator.GenerateTrajectory();
-//         Debug.Log(generator.PrintElements());
-//         // generator.PlotTrajectory();
-//         generator.PlotPhysical();
-//         generator.CreateCorridorWalls();
-//     }
-// }
